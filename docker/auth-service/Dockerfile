@@ -12,7 +12,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Specify Dockerfile path
+                    // Specify the path to the Dockerfile located in docker/auth-service
                     docker.build("kwadwoaddo/auth-service:${env.BUILD_ID}", "-f docker/auth-service/Dockerfile .")
                 }
             }
