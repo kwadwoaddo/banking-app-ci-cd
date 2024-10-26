@@ -1,14 +1,38 @@
-# Stage 1: Build dependencies
-FROM node:14 AS builder
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
-COPY . .
-RUN npm run build || echo "No build script available, continuing..."
-
-# Stage 2: Create a lightweight runtime image
-FROM node:14-alpine
-WORKDIR /app
-COPY --from=builder /app .
-EXPOSE 3000
-CMD ["node", "index.js"]
+pipeline {
+    agent any
+    environment {
+        DOCKER_CREDENTIALS = credentials('dockerhub')  // DockerHub credentials ID
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/kwadwoaddo/banking-app-ci-cd.git', credentialsId: 'github'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Specify Dockerfile path
+                    docker.build("kwadwoaddo/auth-service:${env.BUILD_ID}", "-f docker/auth-service/Dockerfile .")
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', 'DOCKER_CREDENTIALS') {
+                        docker.image("kwadwoaddo/auth-service:${env.BUILD_ID}").push()
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl apply -f kubernetes/deployment.yaml'
+                    sh 'kubectl apply -f kubernetes/service.yaml'
+                }
+            }
+        }
+    }
+}
