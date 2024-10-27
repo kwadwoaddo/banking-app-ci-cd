@@ -28,20 +28,16 @@ pipeline {
                 }
             }
         }
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    try {
-                        // Log in to DockerHub and push the image
-                        docker.withRegistry('', 'DOCKER_CREDENTIALS') {
-                            docker.image("kwadwoaddo/auth-service:${env.BUILD_ID}").push()
-                        }
-                    } catch (Exception e) {
-                        error "Push Docker Image stage failed: ${e.message}"
-                    }
-                }
-            }
+        stage('Build Docker Image') {
+    steps {
+        script {
+            // Specify the path to the Dockerfile in docker/auth-service
+            docker.build("kwadwoaddo/auth-service:${env.BUILD_ID}", "-f docker/auth-service/Dockerfile .")
         }
+    }
+}
+
+
         stage('Deploy to Kubernetes') {
             steps {
                 script {
